@@ -1,0 +1,43 @@
+name: Release Binary
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    env:
+      VERSION: "v0.0.0" # fallback
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.3"
+
+      - name: Extract tag version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+
+      - name: Build snapver-cli (darwin/amd64)
+        run: |
+          mkdir -p dist
+          GOOS=darwin GOARCH=amd64 go build \
+            -ldflags "-s -w -X github.com/snapver/snapver-cli/cmd.Version=$VERSION" \
+            -o dist/snapver-cli .
+
+          tar -czvf dist/snapver-cli_${VERSION}_darwin_amd64.tar.gz -C dist snapver-cli
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          files: dist/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
