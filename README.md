@@ -1,3 +1,5 @@
+![demo](https://github.com/user-attachments/assets/778dc230-1deb-49af-985f-add0c53b37dd)
+
 # `snapver-cli`
 
 Snapver is a tool that automatically records file changes. It aims to leave at least a restorable snapshot during automated workflows.
