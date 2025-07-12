@@ -19,9 +19,6 @@ While Git can already handle those changes, I built Snapver to make it much easi
 ```sh
 # Homebrew
 brew install snapver/tap/snapver-cli
-
-# Go
-go install github.com/snapver/snapver-cli@latest
 ```
 
 ### Usage
