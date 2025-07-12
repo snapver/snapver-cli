@@ -10,11 +10,16 @@ jobs:
     name: Build and Release
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+
     env:
-      VERSION: "v0.0.0" # fallback
+      VERSION: "v0.0.0" # Fallback
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Go
@@ -25,19 +30,20 @@ jobs:
       - name: Extract tag version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
 
-      - name: Build snapver-cli (darwin/amd64)
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
         run: |
           mkdir -p dist
-          GOOS=darwin GOARCH=amd64 go build \
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags "-s -w -X github.com/snapver/snapver-cli/cmd.Version=$VERSION" \
-            -o dist/snapver-cli .
+            -o dist/snapver-cli_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }} .
 
-          tar -czvf dist/snapver-cli_${VERSION}_darwin_amd64.tar.gz -C dist snapver-cli
+          tar -czvf dist/snapver-cli_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz -C dist snapver-cli_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
-          files: dist/*.tar.gz
+          files: |
+            dist/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
