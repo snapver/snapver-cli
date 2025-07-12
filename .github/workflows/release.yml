@@ -8,18 +8,33 @@ on:
 permissions:
   contents: write
 
+env:
+  VERSION: "v0.0.0" # fallback
+
 jobs:
+  create-release:
+    name: Create GitHub Release (once)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+
+      - name: Create empty release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-release:
-    name: Build and Release
+    name: Build and Upload Binaries
+    needs: create-release
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         goos: [linux, darwin]
         goarch: [amd64, arm64]
-
-    env:
-      VERSION: "v0.0.0" # Fallback
 
     steps:
       - name: Checkout
@@ -36,17 +51,15 @@ jobs:
       - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
         run: |
           mkdir -p dist
+          BIN_NAME=snapver-cli_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
             -ldflags "-s -w -X github.com/snapver/snapver-cli/cmd.Version=$VERSION" \
-            -o dist/snapver-cli_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }} .
-
-          tar -czvf dist/snapver-cli_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz -C dist snapver-cli_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}
+            -o dist/$BIN_NAME .
+          tar -czvf dist/$BIN_NAME.tar.gz -C dist $BIN_NAME
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.VERSION }}
-          files: |
-            dist/*.tar.gz
+          files: dist/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
